@@ -52,9 +52,15 @@ def main() -> None:
     # 2) Create a full educational video script (wizard goat persona) from the research
     print("[demo] Creating full educational video script (wizard goat)...")
     script_prompt = (
-        "Using the research summary below, write a full, detailed educational video script for a character: the 'Wizard Goat'.\n"
-        "Include: character description, scene directions, full dialogue (with timestamps or cue lines), visual notes, pacing cues, and a short call-to-action at the end.\n\n"
-        "Research summary:\n\n"
+        "You are creating a detailed educational video script for the 'Wizard Goat' - a wise, magical goat character who explains science in an engaging way.\n\n"
+        "Write a FULL video script (2-3 minutes) with:\n"
+        "- Wizard Goat introduction: 'Greetings, mortals! I am the Wizard Goat, your guide to the mysteries of science!'\n"
+        "- Detailed narration explaining each research finding in the Wizard Goat's voice\n"
+        "- Use phrases like 'Behold!', 'Witness the power of science!', 'My magical knowledge reveals...'\n"
+        "- Include specific dialogue for each key finding\n"
+        "- End with: 'Remember, young scholars, science is the greatest magic of all! Until next time, this is your Wizard Goat, signing off!'\n"
+        "- Make it conversational and engaging, as if the Wizard Goat is actually speaking to the audience\n\n"
+        "Research to explain:\n\n"
         + research
     )
 
