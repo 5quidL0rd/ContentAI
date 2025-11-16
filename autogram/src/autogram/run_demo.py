@@ -33,45 +33,22 @@ def main() -> None:
 
     print("[demo] Collected length:", len(collected))
 
-    # 1) Research summary (structured, cite sources)
-    print("[demo] Creating structured research summary...")
-    research_prompt = (
-        "You are an expert neuroscience researcher. Read the collected web snippets below and produce:\n"
-        "1) A concise research summary (3-6 bullet findings) with citations in parentheses when sources are present;\n"
-    "2) A short 'elevator pitch' (1-2 sentences) suitable as a social media hook;\n"
-        "3) A list of the original sources (URLs) identified in the collected text.\n\n"
-        "Collected content:\n\n"
+    # Create a single neuroscience fact sentence
+    print("[demo] Creating single neuroscience fact...")
+    fact_prompt = (
+        "Write ONE clean sentence about the most important neuroscience discovery from this research. "
+        "Include the institution name and what they discovered. "
+        "Use NO emojis, NO hashtags, NO special characters. Just plain text.\n\n"
         + collected
     )
 
-    research = summarizer._run(text=research_prompt, max_tokens=600)
-    if isinstance(research, str) and research.startswith("ERROR"):
-        print("[demo] Summarizer error (research):", research)
-        return
-
-    # 2) Create a full educational video script (wizard goat persona) from the research
-    print("[demo] Creating full educational video script (wizard goat)...")
-    script_prompt = (
-        "You are creating a detailed educational video script for the 'Wizard Goat' - a wise, magical goat character who explains science in an engaging way.\n\n"
-        "Write a FULL video script (2-3 minutes) with:\n"
-        "- Wizard Goat introduction: 'Greetings, mortals! I am the Wizard Goat, your guide to the mysteries of science!'\n"
-        "- Detailed narration explaining each research finding in the Wizard Goat's voice\n"
-        "- Use phrases like 'Behold!', 'Witness the power of science!', 'My magical knowledge reveals...'\n"
-        "- Include specific dialogue for each key finding\n"
-        "- End with: 'Remember, young scholars, science is the greatest magic of all! Until next time, this is your Wizard Goat, signing off!'\n"
-        "- Make it conversational and engaging, as if the Wizard Goat is actually speaking to the audience\n\n"
-        "Research to explain:\n\n"
-        + research
-    )
-
-    script = summarizer._run(text=script_prompt, max_tokens=1200)
+    script = summarizer._run(text=fact_prompt, max_tokens=50)
     if isinstance(script, str) and script.startswith("ERROR"):
         print("[demo] Summarizer error (script):", script)
         return
 
-    # Format both outputs
-    print("[demo] Formatting outputs for report")
-    formatted_research = formatter._run(text=research, style='markdown')
+    # Format the single fact
+    print("[demo] Formatting fact for report")
     formatted_script = formatter._run(text=script, style='markdown')
 
     # Tool trace (which env vars we saw)
@@ -88,18 +65,8 @@ def main() -> None:
 
     out_path = root / 'report.md'
     with out_path.open('w', encoding='utf-8') as f:
-        f.write('# Autogram Demo Report\n\n')
-        f.write(f'**Query:** {query}\n\n')
-        f.write('---\n\n')
-        f.write('## Research Summary\n\n')
-        f.write(formatted_research + '\n\n')
-        f.write('---\n\n')
-        f.write('## Educational Video Script (Wizard Goat)\n\n')
-        f.write(formatted_script + '\n\n')
-        f.write('---\n\n')
-        f.write('## Tool trace\n\n')
-        for line in trace_lines:
-            f.write(f'- {line}\n')
+        f.write('# Neuroscience Fact\n\n')
+        f.write(formatted_script + '\n')
 
     # Optionally run video generation if RUN_VEO=true in the env
     # By default, run video generation. Set RUN_VEO=false in the env to disable.
@@ -113,16 +80,8 @@ def main() -> None:
         else:
             try:
                 veo = VeoTool(api_key=veo_key)
-                # Use the generated report.md as the prompt for the video tool.
-                # Read the report and trim to a reasonable length if necessary.
-                try:
-                    report_text = (root / 'report.md').read_text(encoding='utf-8')
-                except Exception:
-                    report_text = script
-
-                # Trim to first 30k characters to avoid excessively large prompts
-                max_prompt_len = 30000
-                video_prompt = report_text[:max_prompt_len]
+                # Create a direct video generation prompt with the specific fact
+                video_prompt = f"A wizard goat character speaking directly to camera saying: '{script.strip()}'. The goat should be clearly visible and speaking the words audibly."
 
                 print(f"[demo] Using report.md as video prompt (chars={len(video_prompt)})")
                 veo_out = veo._run(prompt=video_prompt, output_file=str(root / 'autogram_output.mp4'))
