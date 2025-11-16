@@ -6,6 +6,7 @@ from autogram import get_openai_key
 import sys
 
 from autogram.crew import Autogram
+from autogram.instagram_utils import post_to_instagram
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
@@ -29,8 +30,16 @@ def run():
               "The crew will likely fail without a valid key.")
         # Continue anyway so users can run non-API parts or see more errors
 
+
     try:
-        Autogram().crew().kickoff(inputs=inputs)
+        result = Autogram().crew().kickoff(inputs=inputs)
+
+        if isinstance(result, dict):
+            video = result.get("video_path")
+            caption = result.get("caption")
+            if video and caption:
+                post_to_instagram(video, caption)
+
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
 
