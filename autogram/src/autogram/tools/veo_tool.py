@@ -6,6 +6,8 @@ from crewai.tools.base_tool import BaseTool
 from google import genai
 from google.genai import types
 
+import os
+
 
 class VeoTool(BaseTool):
     """Generates videos using Google Veo 3 as a CrewAI tool."""
@@ -13,19 +15,29 @@ class VeoTool(BaseTool):
     name: str = "veo_tool"
     description: str = "Generates a video using Google Veo 3 based on a text prompt or a script file."
 
-    # Pydantic (BaseTool) requires model fields to be declared. Declare runtime fields here.
+    # Runtime fields
     api_key: Optional[str] = None
     client: Optional[Any] = None
 
-    def __init__(self, api_key: str):
-        # Initialize pydantic BaseModel parent
+    def __init__(self, api_key: Optional[str] = None):
+        # Initialize BaseTool (pydantic) default behavior
         super().__init__()
-        # Assign declared model fields
-        self.api_key = api_key
-        self.client = genai.Client(api_key=api_key)
+
+        # Resolve api key from argument or environment
+        self.api_key = api_key or os.environ.get('VEO_KEY') or os.environ.get('VEO_API_KEY')
+        if not self.api_key:
+            # Don't raise here; allow instantiation for dry-run and surface errors at runtime
+            self.client = None
+            return
+
+        try:
+            self.client = genai.Client(api_key=self.api_key)
+        except Exception:
+            # If client creation fails, set client to None and allow _run to raise
+            self.client = None
 
     def _run(self, prompt: str | None = None, from_file: str | None = None, output_file: str = "autogram_output.mp4") -> str:
-        """
+        """l
         CrewAI will call this method internally when the agent uses the tool.
 
         Provide either `prompt` or `from_file` (path to a text file containing the prompt).
