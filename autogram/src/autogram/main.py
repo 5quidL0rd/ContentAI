@@ -2,7 +2,7 @@
 import sys
 import warnings
 from datetime import datetime
-from autogram import get_openai_key
+import os
 import sys
 
 from autogram.crew import Autogram
@@ -10,38 +10,61 @@ from autogram.instagram_utils import post_to_instagram
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # This main file is intended to be a way for you to run your
 # crew locally, so refrain from adding unnecessary logic into this file.
 # Replace with inputs you want to test with, it will automatically
 # interpolate any tasks and agents information
 
 def run():
-    """
-    Run the crew for neuroscience content extraction.
-    """
     inputs = {
         'current_year': str(datetime.now().year)
     }
-    
-    api_key = get_openai_key()
-    if not api_key:
-        print("Warning: OPENAI_API_KEY not found in environment.\n"
-              "Create a .env file (see .env.example) and add your key as OPENAI_API_KEY=YOUR_KEY\n"
-              "The crew will likely fail without a valid key.")
-        # Continue anyway so users can run non-API parts or see more errors
-
 
     try:
         result = Autogram().crew().kickoff(inputs=inputs)
 
-        if isinstance(result, dict):
-            video = result.get("video_path")
-            caption = result.get("caption")
-            if video and caption:
-                post_to_instagram(video, caption)
+        print("\n=== RAW CREW OUTPUT OBJECT ===")
+        print(result)
+        print("OUTPUT TYPE:", type(result))
+        print("==============================\n")
+
+        # ✓ Correct extraction of text from CrewOutput
+        if hasattr(result, "final_output"):
+            output_text = result.final_output
+        elif hasattr(result, "raw_output"):
+            output_text = result.raw_output
+        elif hasattr(result, "output"):
+            output_text = result.output
+        else:
+            output_text = str(result)
+
+        print("\n=== EXTRACTED OUTPUT TEXT ===")
+        print(output_text)
+        print("==============================\n")
+
+        # Detect MP4 filename
+        import re
+        match = re.search(r'([\w\-_]+\.mp4)', output_text)
+
+        if match:
+            video_filename = match.group(1)
+
+            base_dir = r"C:\Users\jayrk\Dev\GatorAI\ContentAI\autogram\src"
+            video_path = os.path.join(base_dir, video_filename)
+
+            caption = "Neuroscience Facts"
+            print(f"🎬 Detected video: {video_path}")
+
+            post_to_instagram(video_path, caption)
+            return
+
+        print("⚠️ No video was posted — MP4 not found in CrewOutput.")
 
     except Exception as e:
-        raise Exception(f"An error occurred while running the crew: {e}")
+        raise Exception(f"Error while running crew: {e}")
 
 
 def train():
