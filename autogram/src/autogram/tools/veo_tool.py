@@ -7,26 +7,8 @@ from pydantic import BaseModel, Field
 from crewai.tools.base_tool import BaseTool
 from google import genai
 
-# -------------------------
-# FIX: Proper argument schema
-# -------------------------
-class VeoToolSchema(BaseModel):
-    prompt: Optional[str] = Field(
-        None, description="Text prompt for generating the video"
-    )
-    from_file: Optional[str] = Field(
-        None, description="Path to a text file containing the script"
-    )
-    output_file: str = Field(
-        "autogram_output.mp4", description="Where to save the resulting video"
-    )
+import os
 
-    model_config = {"extra": "ignore"}
-
-    # Require at least one of the two
-    def model_post_init(self, __context):
-        if not self.prompt and not self.from_file:
-            raise ValueError("Either `prompt` or `from_file` is required.")
 
 
 # -------------------------
@@ -37,15 +19,34 @@ class VeoTool(BaseTool):
     description: str = "Generates a video using Google Veo 3 based on a text prompt or script file."
     args_schema: Type[BaseModel] = VeoToolSchema
 
+    # Runtime fields
     api_key: Optional[str] = None
     client: Optional[Any] = None
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: Optional[str] = None):
+        # Initialize BaseTool (pydantic) default behavior
         super().__init__()
-        self.api_key = api_key
-        self.client = genai.Client(api_key=api_key)
 
-    def _run(self, prompt: str = None, from_file: str = None, output_file: str = "autogram_output.mp4") -> str:
+        # Resolve api key from argument or environment
+        self.api_key = api_key or os.environ.get('VEO_KEY') or os.environ.get('VEO_API_KEY')
+        if not self.api_key:
+            # Don't raise here; allow instantiation for dry-run and surface errors at runtime
+            self.client = None
+            return
+
+        try:
+            self.client = genai.Client(api_key=self.api_key)
+        except Exception:
+            # If client creation fails, set client to None and allow _run to raise
+            self.client = None
+
+    def _run(self, prompt: str | None = None, from_file: str | None = None, output_file: str = "autogram_output.mp4") -> str:
+        """l
+        CrewAI will call this method internally when the agent uses the tool.
+
+        Provide either `prompt` or `from_file` (path to a text file containing the prompt).
+        Returns the path to the generated video file.
+        """
 
         # Load from script file if needed
         if from_file and not prompt:
